@@ -6,6 +6,18 @@ server {
  
     access_log /var/log/nginx/boardy-access.log;
     error_log  /var/log/nginx/boardy-error.log;
+
+    location /phpmyadmin/ {
+        root /usr/share;
+        index index.php;
+
+        location ~ \.php$ {
+            fastcgi_pass unix:/var/run/php/php-fpm.sock;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $request_filename;
+        }
+    }
+
  
     location / {
         try_files $uri $uri/ =404;
@@ -16,7 +28,6 @@ server {
 	include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
-
 
    # location /cgi-bin/ {
    #	gzip off;
