@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 import aiomysql
 
 from database import get_db	
+from auth import get_current_user
 
 
 router = APIRouter(prefix='/api', tags=['comments'])
@@ -41,8 +42,12 @@ class CommentCreate(BaseModel):
 
 
 @router.post('/posts/{post_id}/comments', status_code=201)
-async def create_comment(post_id: int, data: CommentCreate):
-
+async def create_comment(
+	post_id: int,
+	data: CommentCreate,
+	user = Depends(get_current_user)
+):
+    author_id = user['user_id']
     if not data.body.strip():
         raise HTTPException(
             status_code=422,
@@ -71,7 +76,7 @@ async def create_comment(post_id: int, data: CommentCreate):
             INSERT INTO comments (body, post_id, author_id)
             VALUES (%s, %s, %s)
             ''',
-            (data.body, post_id, 1)
+            (data.body, post_id, author_id)
         )
 
         await conn.commit()
@@ -92,7 +97,11 @@ class CommentUpdate(BaseModel):
 
 
 @router.put('/comments/{comment_id}')
-async def update_comment(comment_id: int, data: CommentUpdate):
+async def update_comment(
+	comment_id: int,
+	data: CommentUpdate,
+	user = Depends(get_current_user)
+):
 
     if not data.body.strip():
         raise HTTPException(
@@ -133,7 +142,10 @@ async def update_comment(comment_id: int, data: CommentUpdate):
 
 
 @router.delete('/comments/{comment_id}', status_code=204)
-async def delete_comment(comment_id: int):
+async def delete_comment(
+	comment_id: int,
+	user = Depends(get_current_user)
+):
 
     conn = await get_db()
 

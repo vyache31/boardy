@@ -1,4 +1,13 @@
 <?php
+session_set_cookie_params([
+    'lifetime' => 3600,
+    'path' => '/',
+    'domain' => '',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
 session_start();
 if (empty($_SESSION['user_id'])) {
     header('Location: /login.php');
