@@ -1,6 +1,6 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from routers import comments
+from routers import comments, ws
 
 from auth import get_current_user
 
@@ -21,6 +21,7 @@ app.add_middleware(
 )
 
 app.include_router(comments.router)
+app.include_router(ws.router)
 
 @app.get('/api/status')
 async def status():
@@ -58,3 +59,11 @@ async def get_users(
     for u in users:
         u['created_at'] = str(u['created_at'])
     return {'users': users, 'count': len(users)}
+
+
+@app.post('/internal/broadcast')
+async def internal_broadcast(request: Request):
+    data = await request.json()
+    await ws.manager.broadcast({'type': 'new_post', 'post': data})
+    return {'ok': True}
+
