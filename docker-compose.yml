@@ -6,7 +6,7 @@ services:
       - "443:443"
     volumes:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - ./boardy-laravel:/var/www/html
+      - ./src/boardy-laravel:/var/www/html
     depends_on:
       - laravel
       - fastapi
@@ -19,7 +19,7 @@ services:
       - ./src/boardy-laravel:/var/www/html
       - laravel_storage:/var/www/html/storage
     env_file:
-      - ./boardy-laravel/.env
+      - ./src//boardy-laravel/.env
     depends_on:
       mysql:
         condition: service_healthy

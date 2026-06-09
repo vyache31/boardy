@@ -1,3 +1,15 @@
+# сборка фронтенда (Vite)
+FROM node:20 AS frontend
+WORKDIR /app
+
+# Копируем package-файлы и устанавливаем зависимости
+COPY package*.json ./
+RUN npm ci
+
+# Копируем весь проект и собираем фронтенд
+COPY . .
+RUN npm run build
+
 FROM php:8.3-fpm
 
 # Системные пакеты
@@ -27,9 +39,12 @@ COPY . .
 # Догружаем автозагрузку
 RUN composer dump-autoload --optimize
 
+# Копируем собранный фронтенд из стадии frontend
+COPY --from=frontend /app/public/build /var/www/html/public/build
+
 # Права
-RUN chown -R www-data:www-data storage bootstrap/cache
-RUN chmod -R 775 storage bootstrap/cache
+RUN chown -R www-data:www-data storage bootstrap/cache public/build
+RUN chmod -R 775 storage bootstrap/cache public/build
 
 EXPOSE 9000
 CMD ["php-fpm"]

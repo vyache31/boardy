@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 import asyncio
-import aioredis
+import redis.asyncio as redis
 import json
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
