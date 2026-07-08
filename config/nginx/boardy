@@ -1,14 +1,26 @@
 server {
     server_name vyache.space;
  
-    root /var/www/boardy;
-    index index.html;
+    root /var/www/boardy/public;
+    index index.php;
  
     access_log /var/log/nginx/boardy-access.log;
     error_log  /var/log/nginx/boardy-error.log;
+
+    location /phpmyadmin/ {
+        root /usr/share;
+        index index.php;
+
+        location ~ \.php$ {
+            fastcgi_pass unix:/var/run/php/php-fpm.sock;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $request_filename;
+        }
+    }
+
  
     location / {
-        try_files $uri $uri/ =404;
+        try_files $uri $uri/ /index.php?$query_string;
     }
 
     location ~ \.php$ {
