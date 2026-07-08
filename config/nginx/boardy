@@ -1,8 +1,8 @@
 server {
     server_name vyache.space;
  
-    root /var/www/boardy/public;
-    index index.php;
+    root /var/www/boardy;
+    index index.html;
  
     access_log /var/log/nginx/boardy-access.log;
     error_log  /var/log/nginx/boardy-error.log;
@@ -20,7 +20,7 @@ server {
 
  
     location / {
-        try_files $uri $uri/ /index.php?$query_string;
+        try_files $uri $uri/ =404;
     }
 
     location ~ \.php$ {
@@ -28,7 +28,6 @@ server {
 	include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
-
 
    # location /cgi-bin/ {
    #	gzip off;
