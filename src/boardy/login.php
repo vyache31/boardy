@@ -61,9 +61,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <button type="submit">Войти</button>
         </form>
+	
+	<p style="margin-top: 15px;color: #666; text-decoration: none; text-align: center;">или</p>
+	<div class="github-auth-btn">
+	    <a href="/oauth-github.php">
+		<img class="github-icon" src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/github-white-icon.png" alt="GitHub">
+		Войти через GitHub
+	    </a>
+	</div>
         <div class="auth-footer">
             Нет аккаунта? <a href="/register.php">Зарегистрироваться</a>
+	    
         </div>
+
+	
     </div>
 </main>
 <?php include __DIR__ . '/partials/foot.php'; ?>

@@ -3,7 +3,25 @@ const { useState, useEffect } = React;
 const API = 'https://api.vyache.space';
 const PARENT_ID = 1;
 
+
 function ItemList() {
+
+    const [jwt, setJwt] = useState(null);
+
+    useEffect(() => {
+        fetch('/api/me.php', {
+            credentials: 'include'
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('no auth');
+            return res.json();
+        })
+        .then(data => {
+            if (data.token) setJwt(data.token);
+        })
+        .catch(() => setJwt(null));
+    }, []);
+
 
     // Загрузка списка
     const [items, setItems] = useState([]);
@@ -15,17 +33,30 @@ function ItemList() {
     const [editId, setEditId] = useState(null);
     const [editText, setEditText] = useState('');
 
+    const headers = {
+	'Content-Type': 'application/json',
+    };
+    if (jwt) {
+	headers['Authorization'] = 'Bearer ' + jwt;
+    }
+
+
     // GET
     const load = async () => {
 
         const res = await fetch(
-            `${API}/api/posts/${PARENT_ID}/comments`
+            `${API}/api/posts/${PARENT_ID}/comments`,
+	    {
+		method: "GET",
+		headers
+	    }
         );
 
         const data = await res.json();
 
         setItems(data.items);
     };
+
 
     // POST
     const add = async () => {
@@ -36,9 +67,7 @@ function ItemList() {
             `${API}/api/posts/${PARENT_ID}/comments`,
             {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers,
                 body: JSON.stringify({
                     body: text
                 })
@@ -57,9 +86,7 @@ function ItemList() {
             `${API}/comments/${id}`,
             {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers,
                 body: JSON.stringify({
                     body: editText
                 })
@@ -79,7 +106,8 @@ function ItemList() {
         await fetch(
             `${API}/comments/${id}`,
             {
-                method: 'DELETE'
+                method: 'DELETE',
+		headers
             }
         );
 
@@ -89,7 +117,7 @@ function ItemList() {
     // Загрузка при старте
     useEffect(() => {
         load();
-    }, []);
+    }, [jwt]);
 
     return (
 
@@ -165,25 +193,25 @@ function ItemList() {
                 </div>
 
             ))}
+	    {jwt && (
+            	<div className="input-group mt-3">
 
-            <div className="input-group mt-3">
+                	<input
+                    	className="form-control"
+                    	placeholder="Комментарий"
+                    	value={text}
+                    	onChange={e => setText(e.target.value)}
+                	/>
 
-                <input
-                    className="form-control"
-                    placeholder="Комментарий"
-                    value={text}
-                    onChange={e => setText(e.target.value)}
-                />
+                	<button
+                    	className="btn btn-primary"
+                   	 onClick={add}
+               		>
+                	    Отправить
+                	</button>
 
-                <button
-                    className="btn btn-primary"
-                    onClick={add}
-                >
-                    Отправить
-                </button>
-
-            </div>
-
+            	</div>
+	      )}
         </div>
 
     );

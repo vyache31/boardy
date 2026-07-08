@@ -1,3 +1,4 @@
+
 * { 
     margin: 0;
     padding: 0; 
@@ -100,6 +101,18 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #eee;
     margin-bottom: 15px;
 }
 
+.auth-container button {
+   margin-top: 20px;
+   text-align: center;
+   display: block;
+   width: 100%;
+   font-size: 16px;
+   padding: 15px 15px;
+   color:white;
+   border-radius: 6px;
+   text-decoration:none;
+}
+
 .error {
     background: #ffe6e6;
     color: #c0392b;
@@ -151,4 +164,31 @@ footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #eee;
     width: 100%;
     padding: 0;
     margin-bottom: 15px;
+}
+
+.github-auth-btn a {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center; 
+    gap: 10px;
+    width: 100%;
+    padding: 10px 15px;
+    background: black;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;}
+
+.github-icon {
+   width: 25px;
+   height: 25px;
+}
+
+.flash-success {
+    background: #2ecc71;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-weight: 500;
 }

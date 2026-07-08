@@ -58,6 +58,17 @@ $user_name = $_SESSION['user_name'] ?? '';
                 Выйти
             </a>
         <?php else: ?>
+	    <a href="/oauth-github.php" style="
+		display: inline-block;
+		padding: 10px 15px;
+		background:black;
+		color:white;
+		border-radius: 6px;
+		text-decoration:none;
+	    ">
+		Войти через Github
+	    </a>
+
             <a href="/login.php" style="
                 color:white;
                 text-decoration:none;
