@@ -1,42 +1,73 @@
 <?php
-require_once 'db.php';
- 
-$name = $_POST['name'] ?? '';
-$message = $_POST['message'] ?? '';
- 
-if ($name && $message) {
-    // Ищем или создаём пользователя
-    $stmt = $pdo->prepare('SELECT id FROM users WHERE name = ?');
-    $stmt->execute([$name]);
-    $user = $stmt->fetch();
- 
-    if (!$user) {
-        $stmt = $pdo->prepare(
-            'INSERT INTO users (name, email, password) VALUES (?, ?, ?)'
-        );
-        $stmt->execute([$name, $name.'@boardy.local', 'temp']);
-        $user_id = $pdo->lastInsertId();
+session_set_cookie_params([
+    'lifetime' => 3600,
+    'path' => '/',
+    'domain' => '',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
+session_start();
+if (empty($_SESSION['user_id'])) {
+    header('Location: /login.php');
+    exit;
+}
+$error_notification = "";
+require_once __DIR__ . '/db.php';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $body = trim($_POST['body'] ?? '');
+    $title = trim($_POST['title'] ?? '');    
+	
+    echo '<pre>';
+    var_dump($_POST);
+    echo '</pre>';
+    var_dump($title);
+
+
+    if (empty($body) || empty($title)) {
+        $error_notification = 'Добавьте текст во все поля!';
     } else {
-        $user_id = $user['id'];
+        $stmt = $pdo->prepare('INSERT INTO posts (title, body, author_id) VALUES (?, ?, ?)');
+        $stmt->execute([$title, $body, $_SESSION['user_id']]);
+        header('Location: /messages.php');
+	exit;
     }
- 
-    // Создаём пост (prepared statement!)
-    $stmt = $pdo->prepare(
-        'INSERT INTO posts (title, body, author_id) VALUES (?, ?, ?)'
-    );
-    $stmt->execute(['Сообщение', $message, $user_id]);
 }
 ?>
 <!DOCTYPE html>
 <html lang="ru">
-<head><meta charset="utf-8"><title>Boardy</title>
-<link rel="stylesheet" href="/css/style.css"></head>
+<head>
+    <title>Boardy - пост</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
 <body>
-<header><h1><a href="/">Boardy</a></h1></header>
+<?php include __DIR__ . '/partials/head.php'; ?>
+<?php include __DIR__ . '/partials/nav.php'; ?>
 <main>
-  <h2>Спасибо, <?= htmlspecialchars($name) ?>!</h2>
-  <p><a href="/">На главную</a> |
-     <a href="/messages.php">Все сообщения</a></p>
-</main>
-</body></html>
+    <div class="submit-container">
+        <?php if ($error_notification): ?>
+            <div class="error"><?= htmlspecialchars($error_notification) ?></div>
+        <?php endif; ?>
+        <form method="POST" action="">
+	    <input
+                 class="title-input"
+                 type="text"
+                 name="title"
+                 placeholder="Новый пост"
+                 value="<?= htmlspecialchars($_POST['title'] ?? '') ?>"
+                 required
+            >
 
+	    <div>
+                <label for="body">Текст поста</label>
+                <textarea id="body" name="body" required><?= htmlspecialchars($_POST['body'] ?? '') ?></textarea>
+            </div>
+            <button type="submit">Опубликовать</button>
+	    <a href="/messages.php" style="margin-left: 15px;">
+		Отмена
+	    </a>
+        </form>
+    </div>
+</main>
+<?php include __DIR__ . '/partials/foot.php'; ?>
