@@ -1,73 +1,20 @@
 <?php
-session_set_cookie_params([
-    'lifetime' => 3600,
-    'path' => '/',
-    'domain' => '',
-    'secure' => true,
-    'httponly' => true,
-    'samesite' => 'Lax'
-]);
-
-session_start();
-if (empty($_SESSION['user_id'])) {
-    header('Location: /login.php');
-    exit;
-}
-$error_notification = "";
-require_once __DIR__ . '/db.php';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $body = trim($_POST['body'] ?? '');
-    $title = trim($_POST['title'] ?? '');    
-	
-    echo '<pre>';
-    var_dump($_POST);
-    echo '</pre>';
-    var_dump($title);
-
-
-    if (empty($body) || empty($title)) {
-        $error_notification = 'Добавьте текст во все поля!';
-    } else {
-        $stmt = $pdo->prepare('INSERT INTO posts (title, body, author_id) VALUES (?, ?, ?)');
-        $stmt->execute([$title, $body, $_SESSION['user_id']]);
-        header('Location: /messages.php');
-	exit;
-    }
-}
+$name = $_POST['name'] ?? 'Аноним';
+$message = $_POST['message'] ?? '';
+ 
+$line = date('Y-m-d H:i:s') . '|' . $name . '|' . $message . PHP_EOL;
+file_put_contents('/var/www/boardy/data/messages.txt', $line, FILE_APPEND);
 ?>
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-    <title>Boardy - пост</title>
-    <link rel="stylesheet" href="/css/style.css">
-</head>
+<head><meta charset="utf-8"><title>Boardy</title>
+<link rel="stylesheet" href="/css/style.css"></head>
 <body>
-<?php include __DIR__ . '/partials/head.php'; ?>
-<?php include __DIR__ . '/partials/nav.php'; ?>
+<header><h1><a href="/">Boardy</a></h1></header>
 <main>
-    <div class="submit-container">
-        <?php if ($error_notification): ?>
-            <div class="error"><?= htmlspecialchars($error_notification) ?></div>
-        <?php endif; ?>
-        <form method="POST" action="">
-	    <input
-                 class="title-input"
-                 type="text"
-                 name="title"
-                 placeholder="Новый пост"
-                 value="<?= htmlspecialchars($_POST['title'] ?? '') ?>"
-                 required
-            >
-
-	    <div>
-                <label for="body">Текст поста</label>
-                <textarea id="body" name="body" required><?= htmlspecialchars($_POST['body'] ?? '') ?></textarea>
-            </div>
-            <button type="submit">Опубликовать</button>
-	    <a href="/messages.php" style="margin-left: 15px;">
-		Отмена
-	    </a>
-        </form>
-    </div>
+  <h2>Спасибо, <?= htmlspecialchars($name) ?>!</h2>
+  <p>Ваше сообщение получено.</p>
+  <p><a href="/">На главную</a> |
+     <a href="/messages.php">Все сообщения</a></p>
 </main>
-<?php include __DIR__ . '/partials/foot.php'; ?>
+</body></html>
