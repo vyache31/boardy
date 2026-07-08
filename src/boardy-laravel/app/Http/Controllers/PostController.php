@@ -5,9 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Predis\Client as RedisClient;
 
 class PostController extends Controller
 {
@@ -25,34 +22,18 @@ class PostController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|max:255',
-            'body'  => 'required',
+        $this->authorize('create', Post::class);
+
+        $data = $request->validate([
+            'title' => 'required|string|max:200',
+            'body'  => 'required|string|max:5000',
         ]);
 
-        $post = Post::create([
-            'title'     => $validated['title'],
-            'body'      => $validated['body'],
-            'user_id' => auth()->id(),
-        ]);
+        $request->user()->posts()->create($data);
 
-	$redis = new RedisClient([
-    	    'scheme' => 'tcp',
-    	    'host'   => '127.0.0.1',
-    	    'port'   => 6379,
-    	]);
-
-        $redis->publish('new_post', json_encode([
-       	    'id'         => $post->id,
-            'title'      => $post->title,
-       	    'body'       => $post->body,
-            'author'     => auth()->user()->name,
-            'created_at' => $post->created_at->toISOString(),
-    	]));
-
-        return redirect('/posts')->with('success', 'Пост создан');
+        return redirect()->route('posts.index')->with('success', 'Пост создан');
     }
-    
+
     public function show(Post $post)
     {
         $post->load('author', 'comments.author');

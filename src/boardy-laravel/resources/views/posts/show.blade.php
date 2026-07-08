@@ -22,11 +22,34 @@
         </div>
     </div>
 
+    <h3>Комментарии</h3>
+    @forelse($post->comments as $comment)
+        <div class="card mb-2">
+            <div class="card-body">
+                <p>{{ $comment->body }}</p>
+                <small class="text-muted">{{ $comment->author->name }} · {{ $comment->created_at->diffForHumans() }}</small>
+            </div>
+        </div>
+    @empty
+        <p>Комментариев нет. Хочешь быть первым?</p>
+    @endforelse
 
-    <div id="comments-root" 
-         data-post-id="{{ $post->id }}" 
-         data-user-name="{{ auth()->user()->name ?? '' }}" 
-         data-user-id="{{ auth()->user()->id ?? 0 }}">
-     </div>
-    @vite('resources/js/comments.jsx')    
+    @auth
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5>Добавить комментарий</h5>
+                <form action="{{ route('comments.store') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="post_id" value="{{ $post->id }}">
+                    <div class="mb-3">
+                        <textarea name="body" class="form-control @error('body') is-invalid @enderror" rows="3" required></textarea>
+                        @error('body') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                    <button type="submit" class="btn btn-primary">Отправить</button>
+                </form>
+            </div>
+        </div>
+    @else
+        <p class="mt-3"><a href="{{ route('login') }}">Чтобы комментировать - залогинься</p>
+    @endauth
 @endsection

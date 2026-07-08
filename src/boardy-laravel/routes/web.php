@@ -11,13 +11,10 @@ Route::get('/', function () {
 });
 Route::get('/auth/github', [GitHubController::class, 'redirect'])->name('auth.github');
 Route::get('/auth/github/callback', [GitHubController::class, 'callback']);
-Route::get('/oauth/callback', function () {
-    return view('auth.oauth-callback');
-})->name('oauth.callback');
 
 Route::get('/dashboard', function () {
-    return redirect('/posts');
-})->name('dashboard');
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

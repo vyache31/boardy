@@ -12,11 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-	$middleware->append(\App\Http\Middleware\AddRefreshTokenToRequest::class);
     	$middleware->validateCsrfTokens(except: [
         	'auth/github/callback',
     	]);
-	$middleware->append(\App\Http\Middleware\RefreshTokenCookie::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
