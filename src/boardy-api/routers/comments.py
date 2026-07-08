@@ -1,69 +1,157 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-from auth import get_current_user
-from routers.ws import manager
-from database import db_query, db_query_one, db_execute, db_insert
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+import aiomysql
 
-router = APIRouter(prefix='/api')
+from database import get_db	
 
-class CommentIn(BaseModel):
-    body: str = Field(..., min_length=1, max_length=2000)
-    author_name: str = Field(..., min_length=1, max_length=255)
 
-class CommentUpdate(BaseModel):
-    body: str = Field(..., min_length=1, max_length=2000)
+router = APIRouter(prefix='/api', tags=['comments'])
+
 
 @router.get('/posts/{post_id}/comments')
-async def list_comments(post_id: int):
-    rows = await db_query(
-        'SELECT * FROM comments WHERE post_id=%s ORDER BY created_at',
-        post_id
-    )
-    return rows
+async def get_comments(post_id: int):
+    conn = await get_db()
 
-@router.post('/posts/{post_id}/comments')
-async def create_comment(post_id: int, data: CommentIn, user = Depends(get_current_user)):
-    comment_id = await db_insert(
-        '''INSERT INTO comments (post_id, author_id, author_name, body)
-           VALUES (%s, %s, %s, %s)''',
-        post_id, user['sub'], data.author_name, data.body
-    )
-    comment = {
-        'id': comment_id,
-        'post_id': post_id,
-        'author_id': user['sub'],
-        'author_name': data.author_name,
-        'body': data.body,
+    async with conn.cursor(aiomysql.DictCursor) as cur:
+        await cur.execute(
+            'SELECT c.id, c.body, c.created_at, '
+            'u.name AS author_name '
+            'FROM comments c '
+            'JOIN users u ON c.author_id = u.id '
+            'WHERE c.post_id = %s '
+            'ORDER BY c.created_at',
+            (post_id,)
+        )
+
+        items = await cur.fetchall()
+
+    conn.close()
+
+    for item in items:
+        item['created_at'] = str(item['created_at'])
+
+    return {
+        'items': items,
+        'count': len(items)
     }
-    print(f"Broadcasting new_comment: {comment}")
-    await manager.broadcast({'type': 'new_comment', 'comment': comment})
-    return comment
+
+
+class CommentCreate(BaseModel):
+    body: str
+
+
+@router.post('/posts/{post_id}/comments', status_code=201)
+async def create_comment(post_id: int, data: CommentCreate):
+
+    if not data.body.strip():
+        raise HTTPException(
+            status_code=422,
+            detail='Текст комментария пустой'
+        )
+
+    conn = await get_db()
+
+    async with conn.cursor() as cur:
+
+        await cur.execute(
+            'SELECT id FROM posts WHERE id=%s',
+            (post_id,)
+        )
+
+        if not await cur.fetchone():
+            conn.close()
+
+            raise HTTPException(
+                status_code=404,
+                detail='Пост не найден'
+            )
+
+        await cur.execute(
+            '''
+            INSERT INTO comments (body, post_id, author_id)
+            VALUES (%s, %s, %s)
+            ''',
+            (data.body, post_id, 1)
+        )
+
+        await conn.commit()
+
+        new_id = cur.lastrowid
+
+    conn.close()
+
+    return {
+        'id': new_id,
+        'body': data.body,
+        'status': 'created'
+    }
+
+
+class CommentUpdate(BaseModel):
+    body: str
+
 
 @router.put('/comments/{comment_id}')
-async def update_comment(comment_id: int, data: CommentUpdate, user = Depends(get_current_user)):
-    existing = await db_query_one('SELECT * FROM comments WHERE id=%s', comment_id)
-    print(f"DEBUG: existing author_id={existing['author_id']}, token sub={user['sub']}")
-    if not existing:
-        raise HTTPException(404, 'Not found')
-    if existing['author_id'] != int(user['sub']):
-        raise HTTPException(403, 'Not your comment')
-    await db_execute('UPDATE comments SET body=%s WHERE id=%s', data.body, comment_id)
-    await manager.broadcast({
-        'type': 'update_comment',
-        'comment': {'id': comment_id, 'body': data.body}
-    })
-    return {'id': comment_id, 'body': data.body}
+async def update_comment(comment_id: int, data: CommentUpdate):
 
-@router.delete('/comments/{comment_id}')
-async def delete_comment(comment_id: int, user = Depends(get_current_user)):
-    existing = await db_query_one('SELECT * FROM comments WHERE id=%s', comment_id)
-    if not existing:
-        raise HTTPException(404)
-    if existing['author_id'] != int(user['sub']):
-        raise HTTPException(403, 'Not your comment')
-    await db_execute('DELETE FROM comments WHERE id=%s', comment_id)
-    await manager.broadcast({
-        'type': 'delete_comment',
-        'comment_id': comment_id
-    })
-    return {'ok': True}
+    if not data.body.strip():
+        raise HTTPException(
+            status_code=422,
+            detail='Текст пустой'
+        )
+
+    conn = await get_db()
+
+    async with conn.cursor() as cur:
+
+        await cur.execute(
+            '''
+            UPDATE comments
+            SET body=%s
+            WHERE id=%s
+            ''',
+            (data.body, comment_id)
+        )
+
+        if cur.rowcount == 0:
+            conn.close()
+
+            raise HTTPException(
+                status_code=404,
+                detail='Комментарий не найден'
+            )
+
+        await conn.commit()
+
+    conn.close()
+
+    return {
+        'id': comment_id,
+        'body': data.body,
+        'status': 'updated'
+    }
+
+
+@router.delete('/comments/{comment_id}', status_code=204)
+async def delete_comment(comment_id: int):
+
+    conn = await get_db()
+
+    async with conn.cursor() as cur:
+
+        await cur.execute(
+            'DELETE FROM comments WHERE id=%s',
+            (comment_id,)
+        )
+
+        if cur.rowcount == 0:
+            conn.close()
+
+            raise HTTPException(
+                status_code=404,
+                detail='Комментарий не найден'
+            )
+
+        await conn.commit()
+
+    conn.close()
